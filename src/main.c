@@ -1,98 +1,26 @@
 #include "../screen/screen.h"
 #include "../server/server.h"
-#include "../objects/objects.h"
-#include "../actor/actor.h"
-typedef struct {
-  float mat[4][4];
-} ProjectionMatrix;
 
-typedef struct {
-  float mat[4][4];
-} RotationMatrix;
+#include "../world/components/objects.h"
+#include "../world/components/actor.h"
+#include "../world/map.h"
+
+#include "../world/player/player.h"
 
 int main(int argc, char *argv[]) {
-  Screen screen;
+  Buffer frame;
+  Buffer buffer;
+  Buffer overlay;
 
-  if (initScreen(&screen, 0, 0) != 0) { // Width and height later
-    printf("Failed to initialize screen.");
-    return 1;
+  if (initBuffer(&frame) != 0   ||
+      initBuffer(&buffer) != 0  ||
+      initBuffer(&overlay) != 0 ){
+      printf("Failed to initialize buffers");
+      return 1;
   }
-  
-  /*
-  for (;;) {
-    drawLine(&screen, '+', 10.0f, 30.0f, 10.0f, 10.0f);
-    drawLine(&screen, '+', 10.0f, 10.0f, 30.0f, 10.0f);
-    drawLine(&screen, '+', 30.0f, 10.0f, 10.0f, 30.0f);
 
-    printScreen(&screen);
-    clearScreen(&screen);
-    clearTerminal(&screen);
-
-    drawLine(&screen, '+', 10.0f, 10.0f, 30.0f, 10.0f);
-    drawLine(&screen, '+', 30.0f, 10.0f, 30.0f, 30.0f);
-    drawLine(&screen, '+', 30.0f, 30.0f, 10.0f, 10.0f);
-
-    printScreen(&screen);
-    clearScreen(&screen);
-    clearTerminal(&screen);
-
-    drawLine(&screen, '+', 10.0f, 30.0f, 30.0f, 10.0f);
-    drawLine(&screen, '+', 30.0f, 10.0f, 30.0f, 30.0f);
-    drawLine(&screen, '+', 30.0f, 30.0f, 10.0f, 30.0f);
-
-    printScreen(&screen);
-    clearScreen(&screen);
-    clearTerminal(&screen);
-
-    drawLine(&screen, '+', 10.0f, 30.0f, 10.0f, 10.0f);
-    drawLine(&screen, '+', 10.0f, 10.0f, 30.0f, 30.0f);
-    drawLine(&screen, '+', 30.0f, 30.0f, 10.0f, 30.0f);
-
-    printScreen(&screen);
-    clearScreen(&screen);
-    clearTerminal(&screen);
-  }
-  */
-
-  /*
-  float x1 = 50, y1 = 30.0f, x2 = 50.0f, y2 = 30.0f;
-  
-  for (;;) {
-    drawLine(&screen, '+', 30.0f, 30.0f, 30.0f, 10.0f);
-    drawLine(&screen, '+', x1, y1, 30.0f, 10.0f);
-    drawLine(&screen, '+', 30.0f, 30.0f, x2, y2);
-
-    printScreen(&screen);
-    clearScreen(&screen);
-    clearTerminal();
-
-    x1+=0.5f;
-    y1+=0.5f;
-    x2+=0.5f;
-    y2+=0.5f;
-
-    if (x2 > SCREEN_WIDTH) {
-      x1 = 30; y1 = 10.0f; x2 = 50.0f; y2 = 30.0f;
-    }
-  }
-  */
-
-  float a = 10.0f, b = 10.0f;
-
-  for (;;) {
-    fillScreen(&screen, '.');
-
-    drawLine(&screen, '+', 15.0f, 30.0f, 15.0f, 15.0f);
-    drawLine(&screen, '+', 15.0f, 15.0f, 30.0f, 15.0f);
-    drawLine(&screen, '+', 30.0f, 15.0f, 15.0f, 30.0f);
-    
-    //drawLine(&screen, '+', 15.0f, 30.0f, 30.0f, 15.0f);
-    drawLine(&screen, '+', 30.0f, 15.0f, 30.0f, 30.0f);
-    drawLine(&screen, '+', 30.0f, 30.0f, 15.0f, 30.0f);
-    
-    printScreen(&screen);
-    clearTerminal();
-  }
-  
+  fillBuffer(&frame, '.');
+  drawSimpleLine(&frame, '@', 0.0f, 0.0f, 90.0f, 45.0f);
+  printBufferToTerminal(&frame);
   return 0;
 }

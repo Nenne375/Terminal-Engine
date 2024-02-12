@@ -1,4 +1,5 @@
-#include "../common/common.h"
+#pragma once
+#include "../../common/common.h"
 
 #define VERTICES_ALLOCATION_FAILED           obj->vertices==NULL
 #define NORMALS_ALLOCATION_FAILED             obj->normals==NULL

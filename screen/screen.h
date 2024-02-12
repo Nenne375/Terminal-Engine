@@ -1,60 +1,73 @@
 #pragma once
 #include "../common/common.h"
 
+
+#define __INTERNAL_ASPECT_RATIO__ 4
+
 #define __INT_FRAME_HEIGHT__ 45
-#define __INT_FRAME_WIDTH__  90
+#define __INT_FRAME_WIDTH__  __INT_FRAME_HEIGHT__ * __INTERNAL_ASPECT_RATIO__
 
 #define __FRAME_HEIGHT__ 45.0f
-#define  __FRAME_WIDTH__ 90.0f
+#define  __FRAME_WIDTH__  __FRAME_HEIGHT__ * __INTERNAL_ASPECT_RATIO__
 
 #define __ASPECT_RATIO__ (float)(__FRAME_WIDTH__/__FRAME_HEIGHT__)
 
 #define SCREEN_HEIGHT __FRAME_HEIGHT__
 #define SCREEN_WIDTH  __FRAME_HEIGHT__
-#define ASPECT_RATIO   1
+#define SCALAR_ASPECT_RATIO  2
 
-#define X_CENTER_OFSET_VALUE (__FRAME_WIDTH__/4)
+#define X_CENTER_OFSET_VALUE (__FRAME_WIDTH__/8)
 #define Y_CENTER_OFSET_VALUE (__FRAME_HEIGHT__/2)
 
 typedef struct {
-  // int frameHeight, frameWidth;
-  char  cframebuffer[__INT_FRAME_HEIGHT__][__INT_FRAME_WIDTH__];
-  float fframebuffer[__INT_FRAME_HEIGHT__][__INT_FRAME_WIDTH__];
-} Screen;
+  char  ASCIIBuffer[__INT_FRAME_HEIGHT__][__INT_FRAME_WIDTH__];
+  float depthBuffer[__INT_FRAME_HEIGHT__][__INT_FRAME_WIDTH__];
+} Buffer;
+
+int initBuffer(Buffer *buffer) {
+  if (buffer == NULL) return 1;
+  for (int i = 0; i < __FRAME_HEIGHT__; i++) {
+    for (int j = 0; j < __FRAME_WIDTH__; j++) {
+      buffer->ASCIIBuffer[i][j] = ' ';
+      buffer->depthBuffer[i][j] = 0.0f;
+    }
+  }
+  return 0;
+}
+
+int mergeBuffer(Buffer *result, Buffer *bottom, Buffer *top) {
+  if (result == NULL || bottom == NULL || top == NULL) return 1;
+  for (int i = 0; i < __FRAME_HEIGHT__; i++) {
+    for (int j = 0; j < __FRAME_WIDTH__; j++) {
+      if (top->ASCIIBuffer[i][j] == ' ') {
+        result->ASCIIBuffer[i][j] = bottom->ASCIIBuffer[i][j];
+      } else {
+        result->ASCIIBuffer[i][j] = top->ASCIIBuffer[i][j];
+      }
+    }
+  }
+  return 0;
+}
 
 // INITIALIZING & CLEARING
 
-int initScreen(Screen *screen, int width, int height) {
-  if (screen == NULL) return 1;
-
+int fillBuffer(Buffer *buffer, const char fill) {
+  if (buffer == NULL) return 1;
   for (int i = 0; i < __FRAME_HEIGHT__; i++) {
     for (int j = 0; j < __FRAME_WIDTH__; j++) {
-      screen->cframebuffer[i][j] = ' ';
-      screen->fframebuffer[i][j] = 0.0f;
+      buffer->ASCIIBuffer[i][j] = fill;
+      buffer->depthBuffer[i][j] = 0.0f;
     }
   }
   return 0;
 }
 
-int fillScreen(Screen *screen, const char fill) {
-  if (screen == NULL) return 1;
-
+int clearBuffer(Buffer *buffer) {
+  if (buffer == NULL) return 1;
   for (int i = 0; i < __FRAME_HEIGHT__; i++) {
     for (int j = 0; j < __FRAME_WIDTH__; j++) {
-      screen->cframebuffer[i][j] = fill;
-      screen->fframebuffer[i][j] = 0.0f;
-    }
-  }
-  return 0;
-}
-
-int clearScreen(Screen *screen) {
-  if (screen == NULL) return 1;
-
-  for (int i = 0; i < __FRAME_HEIGHT__; i++) {
-    for (int j = 0; j < __FRAME_WIDTH__; j++) {
-      screen->cframebuffer[i][j] = ' ';
-      screen->fframebuffer[i][j] = 0.0f;
+      buffer->ASCIIBuffer[i][j] = ' ';
+      buffer->depthBuffer[i][j] = 0.0f;
     }
   }
   return 0;
@@ -70,16 +83,16 @@ void clearTerminal() {
   Implement a way to choose the char based on the depth of the point;
 */
 
-int plotPoint(Screen *screen, const char fill, float x, float y) {
-  if (screen == NULL) return 1;
+int plotPoint(Buffer *buffer, const char fill, float x, float y) {
+  if (buffer == NULL) return 1;
 
   x *= __ASPECT_RATIO__;
-  screen->cframebuffer[(int)y][(int)x] = fill;
+  buffer->ASCIIBuffer[(int)y][(int)x] = fill;
   return 0;
 }
 
-int plotSmartPoint(Screen *screen, float x, float y) { // NEEDS WORK
-  if (screen == NULL) return 1;
+int plotSmartPoint(Buffer *buffer, float x, float y) { // NEEDS WORK
+  if (buffer == NULL) return 1;
 
   char fill;
 
@@ -96,12 +109,12 @@ int plotSmartPoint(Screen *screen, float x, float y) { // NEEDS WORK
   }
 
   x *= __ASPECT_RATIO__;
-  screen->cframebuffer[(int)y][(int)x] = fill;
+  buffer->ASCIIBuffer[(int)y][(int)x] = fill;
   return 0;
 }
 
-int drawLine(Screen *screen, char fill, float x1, const float y1, float x2, const float y2) {
-    if (screen == NULL) return 1;
+int drawSimpleLine(Buffer *buffer, char fill, float x1, const float y1, float x2, const float y2) {
+    if (buffer == NULL) return 1;
     if (__ASPECT_RATIO__ * x1 > __FRAME_WIDTH__  ||
         __ASPECT_RATIO__ * x2 > __FRAME_WIDTH__  ||
                            y1 > __FRAME_HEIGHT__ ||
@@ -110,10 +123,10 @@ int drawLine(Screen *screen, char fill, float x1, const float y1, float x2, cons
           exit(1);
         }
 
-    float dx = __ASPECT_RATIO__ * (x2 - x1);
+    float dx = SCALAR_ASPECT_RATIO * (x2 - x1);
     float dy = y2 - y1;
     int steps;
-    float xIncrement, yIncrement, x = __ASPECT_RATIO__ * x1, y = y1;
+    float xIncrement, yIncrement, x = SCALAR_ASPECT_RATIO * x1, y = y1;
 
     if (fabs(dx) > fabs(dy)) {
         steps = fabs(dx);
@@ -126,7 +139,9 @@ int drawLine(Screen *screen, char fill, float x1, const float y1, float x2, cons
 
     for (int k = 0; k <= steps; k++) {
         if (y > __FRAME_HEIGHT__ || x > __FRAME_WIDTH__) continue;
-        screen->cframebuffer[(int)round(y)][(int)round(x)] = fill; // [(int)y][(int)x] = fill; // 
+           
+        buffer->ASCIIBuffer[(int)round(y)][(int)round(x)] = fill; // [(int)y][(int)x] = fill; // 
+        buffer->depthBuffer[(int)round(y)][(int)round(x)] = 0.0f;
         x += xIncrement;
         y += yIncrement;
     }
@@ -134,9 +149,26 @@ int drawLine(Screen *screen, char fill, float x1, const float y1, float x2, cons
     return 0;
 }
 
+int drawLine(Buffer *buffer, const char *ASCIICharSet, float x1, float y1, float z1, float x2, float y2, float z2) {
+  if (buffer == NULL) return 1;
+  if (__ASPECT_RATIO__ * x1 > __FRAME_WIDTH__  ||
+      __ASPECT_RATIO__ * x2 > __FRAME_WIDTH__  ||
+                         y1 > __FRAME_HEIGHT__ ||
+                         y2 > __FRAME_HEIGHT__ ){
+        printf("[ERROR] Vertex (%f, %f, %f) out of bounds!\n\t~ Process terminated", x1 > x2 ? x1 : x2, y1 > y2 ? y1 : y2);
+        exit(1);
+      }
+
+  if (x1 > 1 || x2 > 1) { // Do not render past this point
+    
+  }
+    
+  return 0;
+}
+
 // FILLING TRIANGLES
 
-int fillTriangle1(Screen *screen, const char fill, float v1_x, float v1_y, float v2_x, float v2_y, float v3_x, float v3_y) {
+int fillTriangle1(Buffer *buffer, const char fill, float v1_x, float v1_y, float v2_x, float v2_y, float v3_x, float v3_y) {
   for (int i = 0; i < 100; i++) {
     
   }
@@ -182,7 +214,7 @@ int sortVertices(int* yValues, int* xValues) {
   return 0;
 }
 
-int fillTriangle(Screen* screen, const char fill, int x1, int y1, int x2, int y2, int x3, int y3) {
+int fillTriangle(Buffer *buffer, const char fill, int x1, int y1, int x2, int y2, int x3, int y3) {
   int minY = y1;
   int maxY = y3;
 
@@ -201,14 +233,14 @@ int fillTriangle(Screen* screen, const char fill, int x1, int y1, int x2, int y2
         xRight = ((y - yValues[1]) * (xValues[2] - xValues[1])) / (yValues[2] - yValues[1]) + xValues[1];
     }
 
-    drawLine(screen, fill, (float)xLeft, (float)y, (float)xRight, (float)y);
+    drawSimpleLine(buffer, fill, (float)xLeft, (float)y, (float)xRight, (float)y);
   }
   return 0;
 }
 
 // TEXT
 
-int printText(Screen *screen, const char *text, const float x, const float y) { // Coordintes of first character
+int printText(Buffer *buffer, const char *text, const float x, const float y) { // Coordintes of first character
   int co_x = (int)x;
   int co_y = (int)y;
   int i = 0;
@@ -217,7 +249,7 @@ int printText(Screen *screen, const char *text, const float x, const float y) { 
       co_y++;
       co_x = (int)x;
     } else {
-      screen->cframebuffer[co_y][co_x++] = text[i];
+      buffer->ASCIIBuffer[co_y][co_x++] = text[i];
     }
     i++;
   }
@@ -225,16 +257,16 @@ int printText(Screen *screen, const char *text, const float x, const float y) { 
 
 // RENDERING
 
-int renderFrame(Screen *screen) {
-  if (screen == NULL) return 1;
+int renderFrame(Buffer *buffer) {
+  if (buffer == NULL) return 1;
   return 0;
 }
 
-int printScreen(Screen *screen) {
-  if (screen == NULL) return 1;
+int printBufferToTerminal(Buffer *buffer) {
+  if (buffer == NULL) return 1;
   for (int i = 0; i < __FRAME_HEIGHT__; i++) {
     for (int j = 0; j < __FRAME_WIDTH__; j++) {
-      putchar(screen->cframebuffer[i][j]);
+      putchar(buffer->ASCIIBuffer[i][j]);
     }
     putchar('\n');
   }
